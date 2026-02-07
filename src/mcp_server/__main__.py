@@ -3,8 +3,9 @@
 This module allows running the MCP server as:
     python -m src.mcp_server              # Starts HTTP server on port 8000
 
-For production (Railway, Docker, etc.):
-    uvicorn src.mcp_server.server:app --host 0.0.0.0 --port $PORT
+For production:
+    Vercel:  vercel deploy (uses api/index.py)
+    Docker:  uvicorn src.mcp_server.server:app --host 0.0.0.0 --port $PORT
 """
 
 from .server import main

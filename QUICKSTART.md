@@ -123,15 +123,24 @@ resp = httpx.post(URL, headers={**HEADERS, "Mcp-Session-Id": session_id},
 print(json.dumps(resp.json(), indent=2))
 ```
 
-## 8. Docker
+## 8. Deploy to Vercel
 
 ```bash
-docker build -t query-agent-mcp .
-docker run -p 8000:8000 \
-  -e DATABASE_URL="postgresql://..." \
-  -e MCP_API_KEY="your-key" \
-  query-agent-mcp
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy (first time — will prompt to link project)
+vercel
+
+# Set environment variables in Vercel dashboard:
+#   DATABASE_URL = postgresql://user:pass@host/db?sslmode=require
+#   MCP_API_KEY  = <your-generated-key>
+
+# Production deploy
+vercel --prod
 ```
+
+Your MCP endpoint will be at: `https://your-project.vercel.app/mcp`
 
 ## Available Tools
 

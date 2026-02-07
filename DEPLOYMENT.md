@@ -210,97 +210,46 @@ python test_client.py
 
 ## 🏗️ Production Deployment
 
-### Option 1: Single-User Deployment (Simplest)
+### Option 1: Vercel (Recommended)
 
-**Use case**: Personal task management, single user workflows
+**Use case**: Serverless deployment — zero infrastructure management, auto-scaling
 
-```bash
-# 1. Set up production environment
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+The server uses `stateless_http=True`, making every request independent — fully compatible with Vercel's serverless model.
 
-# 2. Configure production .env
-cat > .env << EOF
-DATABASE_URL=postgresql://prod_user:password@prod-host.neon.tech/prod_db?sslmode=require
-EOF
-
-# 3. Deploy as systemd service (Linux)
-sudo tee /etc/systemd/system/query-agent-mcp.service > /dev/null << EOF
-[Unit]
-Description=Query Agent MCP Server
-After=network.target
-
-[Service]
-Type=simple
-User=youruser
-WorkingDirectory=/opt/query-agent-mcp
-Environment="PATH=/opt/query-agent-mcp/.venv/bin"
-ExecStart=/opt/query-agent-mcp/.venv/bin/python -m src.mcp_server
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl enable query-agent-mcp
-sudo systemctl start query-agent-mcp
-```
-
-**Windows Service** (using NSSM):
-```cmd
-nssm install QueryAgentMCP "D:\query-agent-mcp\.venv\Scripts\python.exe" "-m" "src.mcp_server"
-nssm set QueryAgentMCP AppDirectory "D:\query-agent-mcp"
-nssm start QueryAgentMCP
-```
-
-### Option 2: Multi-User Deployment (Isolated Instances)
-
-**Use case**: Multiple users, each with their own server instance
+**Prerequisites**: [Vercel CLI](https://vercel.com/docs/cli) installed (`npm i -g vercel`)
 
 ```bash
-# Deploy one instance per user
-/opt/query-agent-mcp/user1/.venv/bin/python -m src.mcp_server  # User 1
-/opt/query-agent-mcp/user2/.venv/bin/python -m src.mcp_server  # User 2
-# etc.
+# 1. Deploy to Vercel
+vercel
+
+# 2. Set environment variables (Vercel dashboard → Settings → Environment Variables)
+#    DATABASE_URL = postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require
+#    MCP_API_KEY  = <your-api-key>
+
+# 3. Production deploy
+vercel --prod
 ```
 
-**Configure each user's MCP client** to point to their instance:
+Your MCP endpoint: `https://your-project.vercel.app/mcp`
 
-```json
-{
-  "mcpServers": {
-    "query-agent-mcp": {
-      "command": "/opt/query-agent-mcp/user1/.venv/bin/python",
-      "args": ["-m", "src.mcp_server"],
-      "cwd": "/opt/query-agent-mcp/user1"
-    }
-  }
-}
+**How it works**:
+- `vercel.json` routes all requests to `api/index.py`
+- `api/index.py` imports the ASGI `app` from `src/mcp_server/server.py`
+- Vercel's `@vercel/python` runtime serves it as a serverless function
+- API key middleware runs on every request before reaching MCP handler
+
+**Test the deployment**:
+```bash
+curl -X POST https://your-project.vercel.app/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer <your-api-key>" \
+  -d '{"jsonrpc":"2.0","method":"initialize","id":1,"params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
 ```
 
-### Option 3: Docker Deployment
+### Option 2: Docker Deployment
 
-Create `Dockerfile`:
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy source
-COPY src/ ./src/
-COPY .env .env
-
-# Run server
-CMD ["python", "-m", "src.mcp_server"]
-```
-
-Build and run:
+**Use case**: Self-hosted, full control over infrastructure
 
 ```bash
 docker build -t query-agent-mcp .
@@ -430,11 +379,10 @@ set DATABASE_URL=postgresql://prod_user:prod_pass@prod.neon.tech/prod_db?sslmode
 set MCP_API_KEY=your-production-api-key
 ```
 
-**Railway** (via dashboard):
+**Vercel** (via dashboard → Settings → Environment Variables):
 ```
 DATABASE_URL=<your connection string>
 MCP_API_KEY=<your API key>
-PORT=8000  (auto-set by Railway)
 ```
 
 ### Database Connection Pool
@@ -505,16 +453,15 @@ pool = await asyncpg.create_pool(
 - [ ] Run inspector: `mcp-inspector python -m src.mcp_server`
 - [ ] Test tools in web UI at `http://localhost:5173`
 
-**For Production Deployment:**
+**For Production Deployment (Vercel):**
 
-- [ ] Production `.env` configured
-- [ ] Database credentials secured
-- [ ] Connection pool tuned for expected load
-- [ ] Logging configured
-- [ ] Monitoring set up (database connections, query performance)
-- [ ] Systemd service or Docker container configured
-- [ ] Backup strategy for database
-- [ ] Documentation for operations team
+- [ ] Vercel CLI installed (`npm i -g vercel`)
+- [ ] Project linked (`vercel`)
+- [ ] `DATABASE_URL` set in Vercel dashboard
+- [ ] `MCP_API_KEY` set in Vercel dashboard
+- [ ] Production deploy done (`vercel --prod`)
+- [ ] Test endpoint: `curl https://your-project.vercel.app/mcp`
+- [ ] Monitoring set up (Vercel dashboard logs)
 
 ---
 
@@ -666,8 +613,8 @@ VACUUM ANALYZE users;
 
 1. **Test locally** with MCP Inspector
 2. **Integrate** with your preferred MCP client
-3. **Deploy** to your production environment
+3. **Deploy** to Vercel (`vercel --prod`)
 4. **Monitor** performance and errors
-5. **Scale** as needed (add connection pool, deploy multiple instances)
+5. **Scale** — Vercel handles auto-scaling automatically
 
 **Remember**: This server requires API key authentication via `Authorization: Bearer <MCP_API_KEY>` header on all requests. Generate a key with `python -c "import secrets; print(secrets.token_urlsafe(32))"` and set `MCP_API_KEY` in your environment.

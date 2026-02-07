@@ -342,23 +342,24 @@ scope: global
 
 content:
   supported_environments:
-    - "Railway (Docker container)"
+    - "Vercel (serverless Python — primary)"
     - "Docker container (any host)"
     - "Local development (Windows/Mac/Linux)"
     
   required_access:
     - "Network access to Neon PostgreSQL"
     - "Environment variable configuration (DATABASE_URL, MCP_API_KEY)"
-    - "Streamable HTTP for MCP communication (port from PORT env var)"
+    - "Streamable HTTP for MCP communication"
     
   deployment_method:
     transport: "Streamable HTTP (ASGI)"
-    server: "uvicorn"
+    vercel_entrypoint: "api/index.py"
     endpoint: "/mcp"
     authentication: "API key via Authorization: Bearer header"
+    stateless: true
+    rationale: "FastMCP stateless_http=True makes each request independent — compatible with serverless"
     
   not_supported:
-    - "Serverless (Lambda, Cloud Functions)"
     - "Browser/WASM environments"
     - "Embedded systems"
 @end

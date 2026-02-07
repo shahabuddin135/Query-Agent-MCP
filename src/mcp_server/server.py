@@ -8,7 +8,7 @@ Architecture:
     - Low-level tool handlers registered on FastMCP._mcp_server for full control
     - Manages database connection pool lifecycle via lifespan
     - Registers 10 tools for task management, batch operations, and SQL queries
-    - Deployed as ASGI app with uvicorn (Railway, Docker, etc.)
+    - Deployed as ASGI app (Vercel serverless, Docker, or uvicorn locally)
 
 Security:
     - All tools enforce user_id filtering per SECURITY.md
@@ -430,8 +430,9 @@ def main() -> None:
     Usage:
         python -m src.mcp_server
 
-    For production (Railway / Docker):
-        uvicorn src.mcp_server.server:app --host 0.0.0.0 --port $PORT
+    For production:
+        Vercel:  vercel deploy (uses api/index.py)
+        Docker:  uvicorn src.mcp_server.server:app --host 0.0.0.0 --port $PORT
     """
     import uvicorn
 
